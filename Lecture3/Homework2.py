@@ -11,7 +11,7 @@
 * 2025-03-21
 * 최지헌
 * Added Up sampling function
-* If you want to find codes related to Upsampling, search '@Upsampling'
+* If you want to find codes related to Upsampling, search '@Up Sampling'
 """
 
 import pandas as pd
