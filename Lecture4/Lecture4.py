@@ -63,6 +63,5 @@ plt.show()
 
 
 # 3)--------------------------------------------------------------------------
-
 y_regression=w0_op*input_mat + w1_op          # y^ = w0*x + w1
 mse = np.mean((y_regression - output_mat)**2) 
