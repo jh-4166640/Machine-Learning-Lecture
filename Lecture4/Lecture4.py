@@ -29,7 +29,7 @@ input_mat = data[:,0]
 #input_mat[:,1] = np.ones(numberOfData) # add to bias term
 output_mat = data[:,1] # initialize
 
-plt.scatter(input_mat,output_mat,label = "Measured Data")
+plt.scatter(input_mat,output_mat,label = "Measured Data",s=60)
 
 # 2)--------------------------------------------------------------------------
 x_avg = np.mean(input_mat)
