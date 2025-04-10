@@ -113,9 +113,9 @@ def PolynomialGradientDescent(x, y, k, alpha, epoch, init_start, init_space):
         # 얘 지금 4by4로 나옴
 
         new_w=np.reshape(cur_w,[1,w_size]) - alpha*(np.dot(np.transpose(np.dot(basis,cur_w) - y),basis)/NumberOfData)
-
+        #new_w = new_w.re
         w_his = np.append(w_his, new_w.reshape([1,w_size]), axis=0) # new weight store
-        mse = np.mean((np.dot(basis,cur_w - y)**2)) # Calculate MSE using new weights 
+        mse = np.mean((np.dot(basis,new_w.reshape([w_size,1])) - y)**2) # Calculate MSE using new weights 
         mse_his = np.append(mse_his, mse) # MSE store
     return w_his, mse_his
     
@@ -164,6 +164,11 @@ plt.scatter(data[:,0], data[:,1])
 margin_rate = 0
 x_plot_step = 0.1
 
+x_axis_start = np.min(input_mat) - (np.max(input_mat)-np.min(input_mat)) * margin_rate
+x_axis_end = np.max(input_mat) + (np.max(input_mat)-np.min(input_mat)) * margin_rate
+x_plot = np.arange(x_axis_start, x_axis_end, x_plot_step)
+x_plot = np.reshape(x_plot,[x_plot.shape[0],1])
+"""
 k_arr = [3,6,8]
 for k in k_arr:
     print(k)
@@ -173,11 +178,6 @@ for k in k_arr:
     mse = np.mean((y_real - output_mat)**2) # Calculate MSE using new weights 
     plt.plot(input_mat, y_real, label='real y_hat k='+str(k))
 
-    x_axis_start = np.min(input_mat) - (np.max(input_mat)-np.min(input_mat)) * margin_rate
-    x_axis_end = np.max(input_mat) + (np.max(input_mat)-np.min(input_mat)) * margin_rate
-    x_plot = np.arange(x_axis_start, x_axis_end, x_plot_step)
-
-    x_plot = np.reshape(x_plot,[x_plot.shape[0],1])
     new_basis = GeneratorBasis(k,x_plot.shape[0], x_plot.shape[1],x_plot)
     y_hat = np.dot(new_basis,weight)
     #plt.plot(x_plot, y_hat, label='margin y_hat k='+str(k))
@@ -193,14 +193,27 @@ plt.xlim(x_axis_start-x_plot_step,x_axis_end+x_plot_step) # x label range 0~20
 plt.xticks(x_ticks,fontsize=14)
 plt.yticks(fontsize=14)
 plt.show()
-
+"""
 
 #  Gradient Descent 
-w, mse = PolynomialGradientDescent(input_mat,output_mat,3,0.01,5000,-10,100)
+wss, mse = PolynomialGradientDescent(input_mat,output_mat,3,0.01,5000,-10,100)
+basis = GeneratorBasis(3,x_plot.shape[0], x_plot.shape[1],x_plot)
+www = wss[4999,:]
 
+y_descent = np.dot(new_basis,www)
+plt.plot(x_plot, y_descent, label='grd k='+str(k))
 
-
-
+plt.rc('font',size=20)
+plt.xlabel('input',fontsize=20)
+plt.ylabel('output', fontsize=20)
+#plt.title('Gradient Decent Weight variation. alpha='+str(learning_rate),fontsize=24)
+plt.grid(True)
+plt.legend(fontsize=15)
+x_ticks = np.arange(x_axis_start, x_axis_end+x_plot_step,1) # x axis ticks interval
+plt.xlim(x_axis_start-x_plot_step,x_axis_end+x_plot_step) # x label range 0~20
+plt.xticks(x_ticks,fontsize=14)
+plt.yticks(fontsize=14)
+plt.show()
 
 
 
