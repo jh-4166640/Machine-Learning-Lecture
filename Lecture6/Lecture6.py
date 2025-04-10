@@ -5,6 +5,7 @@
 * 최지헌
 * week 6
 * polynomial Basis Function
+* 기본 과제 종료
 """
 
 """
@@ -38,7 +39,6 @@ def GeneratorBasis(k,numData,width, x):
         basis.
 
     """
-    
     basis=np.ones([numData, width * k + 1]) # array size [numData][width * k + 1] # M is Data feature, N is number of data
     for numx in range(0,width,1):
         for exp in range(0,k,1):
@@ -72,19 +72,12 @@ def PolynomialAnalyticSolution(k,x,y):
         weight = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(basis),basis)),np.transpose(basis)),y)
     return weight, basis
 
-    
+#------------------- Data Organize -------------------
 file_path = "C:\\Users\\USER\\lin_regression_data_01.csv"
 open_file = pd.read_csv(file_path,header=None)
 df = pd.DataFrame(open_file)
 
 data_order = 0 # 0 : ascending, 1 : descending
-
-## -- User enter Variables --
-learning_rate = 0.003 # learning rate
-random_init_start = [-10,-20] # random start value # input size+1 by 1
-random_init_space = [100,100] # random space       # input size+1 by 1
-## --------------------------
-
 
 numberOfData = df.shape[0] # row size of data
 widthOfData = df.shape[1] # column size of data 
@@ -94,16 +87,18 @@ data = data.values # sorted data
 
 input_mat = np.ones([numberOfData,1]) # size initialize
 input_mat[:,0] = data[:,0]
-# 50by2
+
 output_mat = data[:,1] # initialize
 output_mat=np.reshape(output_mat, [50,1])
-
-weight,basis = PolynomialAnalyticSolution(3,input_mat,output_mat)
+#-----------------------------------------------------
+"""
+# k = 3)
+weight,basis = PolynomialAnalyticSolution(8,input_mat,output_mat)
 
 plt.scatter(data[:,0], data[:,1])
 y_real = np.dot(basis,weight)
 mse = np.mean((y_real - output_mat)**2) # Calculate MSE using new weights 
-
+plt.plot(input_mat, y_real)
 
 x_axis_start = np.min(input_mat) - (np.max(input_mat)-np.min(input_mat)) * 0.45
 x_axis_end = np.max(input_mat) + (np.max(input_mat)-np.min(input_mat)) * 0.45
@@ -111,6 +106,41 @@ x_step = 0.1
 x_plot = np.arange(x_axis_start, x_axis_end, x_step)
 
 x_plot = np.reshape(x_plot,[x_plot.shape[0],1])
-new_basis = GeneratorBasis(3,x_plot.shape[0], x_plot.shape[1],x_plot)
+new_basis = GeneratorBasis(8,x_plot.shape[0], x_plot.shape[1],x_plot)
 y_hat = np.dot(new_basis,weight)
-plt.plot(x_plot, y_hat)
+plt.plot(x_plot, y_hat, label='margin')
+"""
+#----------------------------------------------------
+plt.scatter(data[:,0], data[:,1])
+margin_rate = 0
+x_plot_step = 0.1
+
+k_arr = [3,6,8]
+for k in k_arr:
+    print(k)
+    weight,basis = PolynomialAnalyticSolution(k,input_mat,output_mat)
+
+    y_real = np.dot(basis,weight)
+    mse = np.mean((y_real - output_mat)**2) # Calculate MSE using new weights 
+    plt.plot(input_mat, y_real, label='real y_hat k='+str(k))
+
+    x_axis_start = np.min(input_mat) - (np.max(input_mat)-np.min(input_mat)) * margin_rate
+    x_axis_end = np.max(input_mat) + (np.max(input_mat)-np.min(input_mat)) * margin_rate
+    x_plot = np.arange(x_axis_start, x_axis_end, x_plot_step)
+
+    x_plot = np.reshape(x_plot,[x_plot.shape[0],1])
+    new_basis = GeneratorBasis(k,x_plot.shape[0], x_plot.shape[1],x_plot)
+    y_hat = np.dot(new_basis,weight)
+    #plt.plot(x_plot, y_hat, label='margin y_hat k='+str(k))
+
+plt.rc('font',size=20)
+plt.xlabel('input',fontsize=20)
+plt.ylabel('output', fontsize=20)
+#plt.title('Gradient Decent Weight variation. alpha='+str(learning_rate),fontsize=24)
+plt.grid(True)
+plt.legend(fontsize=15)
+x_ticks = np.arange(x_axis_start, x_axis_end+x_plot_step,1) # x axis ticks interval
+plt.xlim(x_axis_start-x_plot_step,x_axis_end+x_plot_step) # x label range 0~20
+plt.xticks(x_ticks,fontsize=14)
+plt.yticks(fontsize=14)
+plt.show()
