@@ -59,18 +59,67 @@ def PolynomialAnalyticSolution(k,x,y):
 
     Returns
     -------
-    asdasd
+    weight, basis
 
     """
     x_width = x.shape[1]
     NumberOfData = x.shape[0]
     
     basis= GeneratorBasis(k,numberOfData,x_width,x)
-    
+    # weight[1,x_width*k+1]
     # find the weight
     for rm in range(0, x_width, 1):
         weight = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(basis),basis)),np.transpose(basis)),y)
     return weight, basis
+
+def PolynomialGradientDescent(x, y, k, alpha, epoch, init_start, init_space):
+    """
+    Gradient Descent Method Function
+    
+    x : (Matrix) input data shape(Number of Data by Number of Feature + 1)
+    y : (Matrix) output real data shape(Number of Data by Q) 
+    k : (interger) Number of basis function.
+    a : (float) learning rate
+    epoch : (integer) training epoch
+    
+    Returns
+    -------
+    weight history, mse history
+    """
+    # initalize
+    # weight, first MSE
+    NumberOfData=x.shape[0]
+    xwidth = x.shape[1]
+    w_size = xwidth*k+1
+    w_his = np.empty([0,w_size])
+    mse_his = np.empty(0)
+    w_init = []
+    for idx in range(0, w_size):
+        w_init.append((np.random.rand()*init_space)+init_start)
+        
+    basis = GeneratorBasis(k,NumberOfData,xwidth, x)
+    
+    w_his = np.append(w_his, [w_init], axis=0)
+    print('random init w0, w1, w2 ', w_his)
+    w_init = np.reshape(w_init,[w_size,1])
+    y_hat = np.dot(basis,w_init)
+    mse = np.mean((y_hat - y)**2) # Calculate MSE using new weights 
+    mse_his = np.append(mse_his, mse)
+    
+    for epc in range(0,epoch-1):        
+        cur_w = w_his[epc]              # load to current weight
+        cur_w = cur_w.reshape([w_size,1])
+        # weight update
+        # 얘 지금 4by4로 나옴
+
+        new_w=np.reshape(cur_w,[1,w_size]) - alpha*(np.dot(np.transpose(np.dot(basis,cur_w) - y),basis)/NumberOfData)
+
+        w_his = np.append(w_his, new_w.reshape([1,w_size]), axis=0) # new weight store
+        mse = np.mean((np.dot(basis,cur_w - y)**2)) # Calculate MSE using new weights 
+        mse_his = np.append(mse_his, mse) # MSE store
+    return w_his, mse_his
+    
+    
 
 #------------------- Data Organize -------------------
 file_path = "C:\\Users\\USER\\lin_regression_data_01.csv"
@@ -144,3 +193,21 @@ plt.xlim(x_axis_start-x_plot_step,x_axis_end+x_plot_step) # x label range 0~20
 plt.xticks(x_ticks,fontsize=14)
 plt.yticks(fontsize=14)
 plt.show()
+
+
+#  Gradient Descent 
+w, mse = PolynomialGradientDescent(input_mat,output_mat,3,0.01,5000,-10,100)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
