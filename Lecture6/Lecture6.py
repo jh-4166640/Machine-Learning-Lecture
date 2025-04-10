@@ -1,10 +1,10 @@
-
 """
 * 2025-04-10
 * 임베디드 시스템 전공
 * 2021146036
 * 최지헌
 * week 6
+* polynomial Basis Function
 """
 
 """
@@ -14,12 +14,36 @@ sigma = (input_mat[].max() - input_mat[].min()) / (count_gauss - 1)
 gaussian = np.exp(0.5*((input_mat[] - u_k) / sigma)**2)
 """
 
-#(max-min) * 0.25 # input max - min 범위의 몇%의 마진을 더 취하겠다.
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def GeneratorBasis(k,numData,width, x):
+    """
+    Parameters
+    ----------
+    k : interger
+        Number of basis function.
+    numData : interger
+        Number of data
+    width : interger
+        number of input feature
+    x : (float)matrix
+        input value
+
+    Returns
+    -------
+    basis : np.array[numData][width * k + 1]
+        basis.
+
+    """
+    
+    basis=np.ones([numData, width * k + 1]) # array size [numData][width * k + 1] # M is Data feature, N is number of data
+    for numx in range(0,width,1):
+        for exp in range(0,k,1):
+            basis[:,numx*k + exp + 1]=x[:,numx]**(exp+1)
+    return basis
 
 
 def PolynomialAnalyticSolution(k,x,y):
@@ -40,23 +64,15 @@ def PolynomialAnalyticSolution(k,x,y):
     """
     x_width = x.shape[1]
     NumberOfData = x.shape[0]
-    basis=np.ones([numberOfData,x_width * k + 1]) # array size [M][N][k] # M is Data feature, N is number of data
-      
-    for numx in range(0,x_width,1):
-        for exp in range(0,k,1):
-            basis[:,numx*k + exp + 1]=x[:,numx]**(exp+1)
+    
+    basis= GeneratorBasis(k,numberOfData,x_width,x)
     
     # find the weight
     for rm in range(0, x_width, 1):
         weight = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(basis),basis)),np.transpose(basis)),y)
-    
-
     return weight, basis
 
     
-
-
-
 file_path = "C:\\Users\\USER\\lin_regression_data_01.csv"
 open_file = pd.read_csv(file_path,header=None)
 df = pd.DataFrame(open_file)
@@ -85,6 +101,16 @@ output_mat=np.reshape(output_mat, [50,1])
 weight,basis = PolynomialAnalyticSolution(3,input_mat,output_mat)
 
 plt.scatter(data[:,0], data[:,1])
-y_hat = np.dot(basis,weight)
-plt.plot(input_mat, y_hat)
+y_real = np.dot(basis,weight)
+mse = np.mean((y_real - output_mat)**2) # Calculate MSE using new weights 
 
+
+x_axis_start = np.min(input_mat) - (np.max(input_mat)-np.min(input_mat)) * 0.45
+x_axis_end = np.max(input_mat) + (np.max(input_mat)-np.min(input_mat)) * 0.45
+x_step = 0.1
+x_plot = np.arange(x_axis_start, x_axis_end, x_step)
+
+x_plot = np.reshape(x_plot,[x_plot.shape[0],1])
+new_basis = GeneratorBasis(3,x_plot.shape[0], x_plot.shape[1],x_plot)
+y_hat = np.dot(new_basis,weight)
+plt.plot(x_plot, y_hat)
