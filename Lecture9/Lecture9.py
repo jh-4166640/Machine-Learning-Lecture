@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 def GenerateGausianBasis(x,mu,sigma):
     
     mu = np.insert(np.reshape(mu,[1,2]),2,0,axis=1)
-    return np.exp(-(x-mu[0,:])**2 / (2*sigma**2))
+    val = np.exp(-(x-mu[0,:])**2 / (2*sigma**2))
+    val[:,2]=1
+    return val
 
 def Sigmoid(z):
     p = 1 / (1+np.exp(-z))
@@ -156,8 +158,7 @@ epoch = 10000
 alpha = 0.1
 init_start = -0.1
 init_space = 1
-mu = np.mean(input_mat[:,0:2], axis=0)
-sigma = 1
+
 
 file_path = "C:\\Users\\USER\\Downloads\\logistic_regression_data.csv"
 open_file = pd.read_csv(file_path,index_col = 0)
@@ -179,7 +180,7 @@ for idx in range(widthOfData):
 output_mat = output_mat.reshape([500,1])
 
 mu = np.mean(input_mat[:,0:2], axis=0)
-
+sigma = 1
 basis = GenerateGausianBasis(input_mat,mu,sigma)
 
 w_his, cee_his = GradientDescent(input_mat, output_mat, alpha, epoch, init_start, init_space)
