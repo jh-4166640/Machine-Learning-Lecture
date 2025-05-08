@@ -66,7 +66,7 @@ data = df.values
 N = data.shape[0] 
 
 input_mat = data[:,:split_idx] # 데이터 자동 분할
-output_mat = data[:,split_idx] # 데이터 자동 분할
+output_mat = data[:,split_idx:] # 데이터 자동 분할
 
 output_mat = np.reshape(output_mat, [N,all_widht-split_idx]) # 전체데이터 by 전체 열개수 - y 시작열번호
 
