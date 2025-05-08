@@ -60,15 +60,15 @@ df = pd.DataFrame(open_file)
 
 col = list(df.columns)
 temp = [col for col in col if 'y' in col]
-split_std=col.index(temp[0]) # output 데이터의 시작 열 번호
+split_idx=col.index(temp[0]) # output 데이터의 시작 열 번호
 all_widht = df.shape[1] # 전체 데이터의 열의 갯수
 data = df.values
 N = data.shape[0] 
 
-input_mat = data[:,:split_std] # 데이터 자동 분할
-output_mat = data[:,split_std] # 데이터 자동 분할
+input_mat = data[:,:split_idx] # 데이터 자동 분할
+output_mat = data[:,split_idx] # 데이터 자동 분할
 
-output_mat = np.reshape(output_mat, [N,all_widht-split_std]) # 전체데이터 by 전체 열개수 - y 시작열번호
+output_mat = np.reshape(output_mat, [N,all_widht-split_idx]) # 전체데이터 by 전체 열개수 - y 시작열번호
 
 """
 # input 속성 수 : input_mat의 열의 갯수
