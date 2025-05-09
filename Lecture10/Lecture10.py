@@ -44,7 +44,6 @@ def Two_Layer_NN(x, y, L, init_start,init_space):
     # hidn_1_o : first hidden layer output (after activation function)
     hidn_1_o = Sigmoid(hidn_1_i)
     hidn_1_o = np.concatenate((hidn_1_o, bias), axis=0)
-    
     # outp_i : output layer input (before activation function)
     outp_i = w@hidn_1_o
     # outp_o : output layer output (after activation function)
@@ -52,7 +51,7 @@ def Two_Layer_NN(x, y, L, init_start,init_space):
     
     return outp_o # y hat Q by 1
     
-file_path = "C:\\Users\\USER\\Downloads\\NN_data.csv"
+file_path = "NN_data.csv"
 open_file = pd.read_csv(file_path)
 df = pd.DataFrame(open_file)
 
@@ -74,67 +73,77 @@ output_mat = np.reshape(output_mat, [N,all_widht-split_idx]) # 전체데이터 b
 # input 속성 수 : input_mat의 열의 갯수
 # output class 수
 """
+# -------- hyper parameter --------
 init_space = 2
 init_start = -1
-hidden_layer_node = 2
-
-# y_hat : Q by 1
-y_hat_mat=Two_Layer_NN(input_mat, output_mat, hidden_layer_node, init_start,init_space)
-y_hat_mat = y_hat_mat.T
-
-#%% 0.5 기준으로 hot Encoding
-numOfQ = len(np.unique(output_mat))
-std_y_hat = np.zeros((N,numOfQ))
-data_idx = 0
-for y_hat in y_hat_mat:
-    y_hat = np.where(y_hat >= 0.5, 1, 0)
-    std_y_hat[data_idx,:] = y_hat
-    data_idx = data_idx + 1
-# -------------------
-
-#%% max만 hot Encoding
-numOfQ = len(np.unique(output_mat))
-one_hot_y_hat = np.zeros((N,numOfQ))
-data_idx = 0
-for y_hat in y_hat_mat:
-    idx = np.where(y_hat[:] == np.max(y_hat))
-    one_hot_y_hat[data_idx,idx] = 1
-    data_idx = data_idx + 1
-# -------------------    
-
-#%% accuracy
+hidden_layer_node = np.arange(2,100,1)
+# ---------------------------------
 one_hot_y = OneHotEncoding(output_mat)
-# sigmoid 0.5 기준으로 나눈거의 정확도
-compare_std = np.all(one_hot_y == std_y_hat, axis=1)
-acc_std = (np.sum(compare_std == True) / N) * 100
-
-# max에 정확도
-compare_max = np.all(one_hot_y == one_hot_y_hat, axis=1)
-acc_max = (np.sum(compare_max == True) / N) * 100
-
-compare_max= np.reshape(compare_max, [compare_max.shape[0],1])
-print(acc_std)
-print(acc_max)
-
-true_target = []
-realClass=np.unique(output_mat)
-
-for q in realClass:
-    sel_class=(output_mat == q)
-    sel_class_cnt  = np.sum(sel_class)
+acc_std_array = np.empty(0)
+acc_max_array = np.empty(0)
+# y_hat : Q by 1
+for hln in hidden_layer_node:
+    y_hat_mat=Two_Layer_NN(input_mat, output_mat, hln, init_start,init_space) # Neural network
+    y_hat_mat = y_hat_mat.T
     
-    correct = np.sum(compare_max[sel_class])
-    true_target.append(correct / sel_class_cnt * 100)
 
+    #%% 0.5 기준으로 hot Encoding
+    numOfQ = len(np.unique(output_mat))
+    std_y_hat = np.zeros((N,numOfQ))
+    data_idx = 0
+    for y_hat in y_hat_mat:
+        y_hat = np.where(y_hat >= 0.5, 1, 0)
+        std_y_hat[data_idx,:] = y_hat
+        data_idx = data_idx + 1
+    # -------------------
 
+    #%% max만 hot Encoding
+    numOfQ = len(np.unique(output_mat))
+    one_hot_y_hat = np.zeros((N,numOfQ))
+    data_idx = 0
+    for y_hat in y_hat_mat:
+        idx = np.where(y_hat[:] == np.max(y_hat))
+        one_hot_y_hat[data_idx,idx] = 1
+        data_idx = data_idx + 1
+    # -------------------    
 
+    # sigmoid 0.5 기준으로 나눈거의 정확도
+    compare_std = np.all(one_hot_y == std_y_hat, axis=1)
+    acc_std_array = np.append(acc_std_array,(np.sum(compare_std == True) / N) * 100)
 
+    # max에 정확도
+    compare_max = np.all(one_hot_y == one_hot_y_hat, axis=1)
+    acc_max_array = np.append(acc_max_array,(np.sum(compare_max == True) / N) * 100)
 
+    compare_max= np.reshape(compare_max, [compare_max.shape[0],1])
+    #print(acc_std_array.shape)
+    #print(acc_max_array.shape)
 
+    true_target = []
+    realClass=np.unique(output_mat)
 
+    for q in realClass:
+        sel_class=(output_mat == q)
+        sel_class_cnt  = np.sum(sel_class)
+    
+        correct = np.sum(compare_max[sel_class])
+        true_target.append(correct / sel_class_cnt * 100)
 
+    #print(true_target)
 
-
-
-
-
+print('average accuracy std: ',np.average(acc_std_array))    
+print('average accuracy max: ',np.average(acc_max_array))
+plt.figure(figsize=(12,6))
+plt.plot(hidden_layer_node, acc_std_array, label="0.5 standard 1 set accuracy")
+plt.plot(hidden_layer_node, acc_max_array, label="max value 1 set accuracy")
+plt.grid(True)
+plt.rc('font',size=18)
+plt.legend(fontsize=15)
+xtick = np.arange(1,np.max(hidden_layer_node)+4,4)
+ytick = np.arange(0,101,4)
+plt.title('Accuracy for change in number of hidden layer nodes',fontsize=22)
+plt.xlabel('Hidden Layer Node',fontsize=18)
+plt.ylabel('accuracy[%]',fontsize=18)
+plt.xticks(xtick,fontsize=18)
+plt.yticks(ytick,fontsize=18)
+plt.show()
