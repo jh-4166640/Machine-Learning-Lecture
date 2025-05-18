@@ -1,3 +1,12 @@
+"""
+* 2025-05-18
+* 임베디드 시스템 전공
+* 2021146036
+* 최지헌
+* Two layer Neural Network
+"""
+
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -57,6 +66,17 @@ def OneHotEncoding(y):
 
 
 def BackPropagation(x_in, w_mat, hidn_o, y_hat, y_real):
+    """
+    parameters
+    * x_in : input data
+    * w_mat : weights output layer between Hidden layer
+    * hidn_o : sigmoid passed on hidden layer
+    * y_hat : output
+    * y_real : real y (One Hot)
+    return
+    * mean_w : A matrix that divides the partially differentiated w weights into batches
+    * mean_v : A matrix that divides the partially differentiated v weights into batches
+    """
     L = hidn_o.shape[0]-1
     batch=y_hat.shape[1]
     # --- 편미분 w matrix --- #
@@ -79,6 +99,17 @@ def BackPropagation(x_in, w_mat, hidn_o, y_hat, y_real):
     return mean_w, mean_v
     
 def ForwardPropagation(cx, bch, w, v):
+    """
+    parameters
+    * cx : input data
+    * bch : batch size
+    * w : weights output layer between Hidden layer
+    * v : weights input layer between Hidden layer
+    
+    return
+    * outp_o : y hat result
+    * hidn_1_o : sigmoid passed on hidden layer
+    """
     # hidn_1_i : first hidden layer input (before activation function)
     hidn_1_i = v@cx # L by batch
     # hidn_1_o : first hidden layer output (after activation function)
@@ -204,11 +235,11 @@ output_mat = np.reshape(output_mat, [train_set.shape[0],all_widht-split_idx]) # 
 # -------- hyper parameter --------
 init_space = 2
 init_start = -1
-hidden_layer_node = 8
+hidden_layer_node = 44
 hln=hidden_layer_node
 batch_size = 64# 2^n
 epoch = 3000
-learning_rate = 0.08
+learning_rate = 0.06
 # ---------------------------------
 one_hot_y = OneHotEncoding(output_mat)
 
@@ -219,13 +250,18 @@ w_his, v_his, mse_his, acc_his=Two_Layer_NN(input_mat, output_mat, hln, learning
                                         
 plt.figure(figsize=(12,6))
 plot_x = np.arange(0,epoch,1)
-plt.plot(plot_x,acc_his,label="acc")
+plt.plot(plot_x,acc_his,label="accuracy")
 plt.grid(True)
 plt.rc('font',size=18)
 plt.legend(fontsize=16)
+plt.title("Accuracy graphs according to epoch\n"
+          +"batch size="+str(batch_size)+", learning rate="+str(learning_rate)+", hidden layer nodes="+str(hln),fontsize=20)
 plt.xlabel('epoch',fontsize=18)
-plt.ylabel('mse',fontsize=18)
-plt.xticks(fontsize=18)
+plt.ylabel('accuracy[%]',fontsize=18)
+xtick = np.arange(0,epoch+1,epoch/10)
+plt.xticks(xtick, fontsize=18)
+#ytick = np.arange(0, 101, 10)
+#plt.yticks(ytick,fontsize=18)
 plt.yticks(fontsize=18)
 plt.show()
         
@@ -235,9 +271,12 @@ plt.plot(plot_x,mse_his,label="mse")
 plt.grid(True)
 plt.rc('font',size=18)
 plt.legend(fontsize=16)
+plt.title("MSE graphs according to epoch\n"
+          +"batch size="+str(batch_size)+", learning rate="+str(learning_rate)+", hidden layer nodes="+str(hln),fontsize=20)
 plt.xlabel('epoch',fontsize=18)
 plt.ylabel('mse',fontsize=18)
-plt.xticks(fontsize=18)
+xtick = np.arange(0,epoch+1,epoch/10)
+plt.xticks(xtick, fontsize=18)
 plt.yticks(fontsize=18)
 plt.show()
 
