@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 # 검정 [0,0,0]
 # 흰 [255,255,255]
 
+
 def MostColor(img):
     threshold = 240
     mask = np.all(img>threshold, axis=2)
@@ -27,51 +28,6 @@ def MostColor(img):
     dominant = unique[np.argmax(counts)]
     return dominant
     
-def AspectRatio(img):
-    # 원형인지 길쭉인지 판단
-    threshold = 240
-    mask = np.all(img>threshold, axis=2)
-    coordinate = np.argwhere(~mask)
-    ymin, xmin = coordinate.min(axis=0)
-    ymax, xmax = coordinate.max(axis=0)
-    height = ymax - ymin + 1
-    width = xmax - xmin + 1
-    aspect_ratio = height / width
-    return aspect_ratio
-    
-
-def MostUseColors(img, K=4):
-    # k-mean clustring을 이용한 색상 값 구분
-    # 반복 횟수로 멈추는 이유
-    # * 안멈출 수 도 있어서
-    pixels = np.reshape(img,[-1,3]) # 255x255,3으로 변경
-    np.random.seed(77) # lucky 77
-    idx=np.random.choice(pixels.shape[0],K,replace=False)
-    centers = pixels[idx]
-    old_centers= centers.copy()
-    MAX_ITER = 20
-    
-    for _ in range(MAX_ITER):
-        min_dist=np.full((pixels.shape[0], 1), np.inf)
-        group = np.zeros((pixels.shape[0],1))
-        distances = np.linalg.norm(pixels[:, None, :] - centers[None, :, :], axis=2)  # (N, K)
-        group = np.argmin(distances, axis=1)  # (N,)
-        for k in range(K):
-            members = pixels[group == k]
-            if len(members) > 0:
-                centers[k] = np.mean(members, axis=0)
-
-        new_centers=centers.copy()
-        
-        old_set = {tuple(np.round(c, 5)) for c in old_centers}
-        new_set = {tuple(np.round(c, 5)) for c in centers}
-        if old_set == new_set:
-            break
-        old_centers = new_centers.copy()
-            
-    return centers
-    
-        
 def Projection_ROW(img):
     threshold = 240
     mask = np.all(img>threshold, axis=2)
@@ -82,7 +38,7 @@ def Projection_ROW(img):
     xx = np.arange(0,pdf.shape[0],1)
     exp = sum(xx*pdf)
     var = sum((xx-exp)**2*pdf)
-    return var
+    return 1/var # 그냥 var로 하면 overflow 발생해서 역수로 입력
 
 def Projection_COLUMN(img):
     threshold = 240
@@ -94,7 +50,7 @@ def Projection_COLUMN(img):
     xx = np.arange(0,pdf.shape[0],1)
     exp = sum(xx*pdf)
     var = sum((xx-exp)**2*pdf)
-    return var
+    return 1/var
 
 def select_features(directory):
     K=3
@@ -116,14 +72,13 @@ def select_features(directory):
         img_GRB = cv2.imread(path)
         img_RGB = cv2.cvtColor(img_GRB, cv2.COLOR_BGR2RGB)
         feature_1 = Projection_ROW(img_RGB)
-        feature_2 = img_RGB[:,:,0].mean() # Red 평균 밝기
-        feature_3 = img_RGB[:,:,1].mean() # Blue 평균 밝기
-        feature_4 = img_RGB[:,:,2].mean() # Green 평균 밝기
-        feature_5 = MostColor(img_RGB)
-        feature_6 = Projection_COLUMN(img_RGB)
+        feature_2 = Projection_COLUMN(img_RGB)
+        feature_3 = img_RGB[:,:,0].mean() # Red 평균 밝기
+        feature_4 = img_RGB[:,:,1].mean() # Blue 평균 밝기
+        feature_5 = img_RGB[:,:,2].mean() # Green 평균 밝기
+        feature_6 = MostColor(img_RGB)
         
-        #feature_6 = MostUseColors(img_RGB,K)
-        #feature_6_flat= feature_6.reshape([1,feature_6.shape[0]*feature_6.shape[1]])
+        
            
         feature_1_list.append(feature_1)
         feature_2_list.append(feature_2)
@@ -131,7 +86,7 @@ def select_features(directory):
         feature_4_list.append(feature_4)
         feature_5_list.append(feature_5)
         feature_6_list.append(feature_6)
-        #feature_6_list = np.vstack((feature_6_list, feature_6_flat))
+        
 
     feature_1_list = np.array(feature_1_list)
     feature_2_list = np.array(feature_2_list)
@@ -348,6 +303,41 @@ def DataDivide(data, train, validation, test):
 directory = "C:\\Users\\USER\\Downloads\\train"
 x,y=select_features(directory)
 mats = np.column_stack([x,y])
+
+#%%--------------데이터 mats를 클러스터링으로 분석------------------
+K = 10
+np.random.seed(77) # lucky 77
+num_samples, num_features = x.shape
+idx=np.random.choice(n_samples,K,replace=False)
+centers = x[idx]
+old_centers= centers.copy()
+MAX_ITER = 100
+min_diff = 0.0001
+
+for iters in range(MAX_ITER):
+    distances = np.linalg.norm(x[:, np.newaxis, :] - centers[np.newaxis, :, :], axis=2)
+    # 중심으로부터 거리 계산
+    labels = np.argmin(distances, axis=1) # 가까우 center에 번호 할당
+    new_centers = np.array([x[labels == i].mean(axis=0) if np.any(labels == i) else centers[i] for i in range(K)])
+    
+    diffs = np.linalg.norm(new_centers - centers) # 새 중심과의 거리
+    if diffs < min_diff: # 최소 이동일 때 종료
+        break
+    centers = new_centers
+    
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12,6))
+plt.imshow(centers, aspect='auto', cmap='viridis')  # or 'hot', 'coolwarm', etc.
+plt.colorbar(label='Feature value')
+plt.xlabel('Feature Number Index')
+plt.ylabel('Class')
+plt.title('Cluster Centers (10x8)')
+plt.xticks(np.arange(8))
+plt.yticks(np.arange(10))
+plt.show()
+#--------------------------------------------------------------
+#%% 모델학습
 train, validataion, test = DataDivide(mats,8,0,2)
 
 train_x = train[:,:train.shape[1]-1]
@@ -356,14 +346,15 @@ train_y = train[:,train.shape[1]-1]
 # -------- hyper parameter --------
 init_space = 1.5
 init_start = -0.7
-hidden_layer_node = 52
+hidden_layer_node = 60
 hln=hidden_layer_node
 batch_size = 64# 2^n
 epoch = 1000
-learning_rate = 0.003
+learning_rate = 0.005
 # ---------------------------------
 w_his, v_his, mse_his, acc_his=Two_Layer_NN(train_x, train_y, hln, learning_rate ,batch_size, epoch, init_start,init_space) # Neural network
-
+#----------------------------------------------------------------
+#%% 모델 검증
 test_x = test[:,:train.shape[1]-1]
 test_y = test[:,train.shape[1]-1]
 
@@ -407,3 +398,4 @@ fcolumns[0,0] = "\\"
 
 conf_mat=np.concatenate((headers,conf_mat),axis=0)
 conf_mat=np.concatenate((fcolumns,conf_mat),axis=1)
+#----------------------------------------------------------------
