@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 def MostColor(img):
-    threshold = 240
+    threshold = 220
     mask = np.all(img>threshold, axis=2)
     only_obj=img[~mask]
     obj = only_obj.reshape(-1,3)
@@ -28,8 +28,8 @@ def MostColor(img):
     dominant = unique[np.argmax(counts)]
     return dominant
     
-def Projection_ROW(img):
-    threshold = 240
+def Projection_COLUMN(img):
+    threshold = 220
     mask = np.all(img>threshold, axis=2)
     
     col_sum = np.sum(~mask, axis=0)
@@ -40,8 +40,8 @@ def Projection_ROW(img):
     var = sum((xx-exp)**2*pdf)
     return 1/var # 그냥 var로 하면 overflow 발생해서 역수로 입력
 
-def Projection_COLUMN(img):
-    threshold = 240
+def Projection_ROW(img):
+    threshold = 220
     mask = np.all(img>threshold, axis=2)
     
     row_sum = np.sum(~mask, axis=1)
@@ -74,8 +74,8 @@ def select_features(directory):
         feature_1 = Projection_ROW(img_RGB)
         feature_2 = Projection_COLUMN(img_RGB)
         feature_3 = img_RGB[:,:,0].mean() # Red 평균 밝기
-        feature_4 = img_RGB[:,:,1].mean() # Blue 평균 밝기
-        feature_5 = img_RGB[:,:,2].mean() # Green 평균 밝기
+        feature_4 = img_RGB[:,:,1].mean() # Green 평균 밝기
+        feature_5 = img_RGB[:,:,2].mean() # Blue 평균 밝기
         feature_6 = MostColor(img_RGB)
         
         
@@ -303,12 +303,12 @@ def DataDivide(data, train, validation, test):
 directory = "C:\\Users\\USER\\Downloads\\train"
 x,y=select_features(directory)
 mats = np.column_stack([x,y])
-
+"""
 #%%--------------데이터 mats를 클러스터링으로 분석------------------
 K = 10
 np.random.seed(77) # lucky 77
 num_samples, num_features = x.shape
-idx=np.random.choice(n_samples,K,replace=False)
+idx=np.random.choice(num_samples,K,replace=False)
 centers = x[idx]
 old_centers= centers.copy()
 MAX_ITER = 100
@@ -328,15 +328,17 @@ for iters in range(MAX_ITER):
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(12,6))
-plt.imshow(centers, aspect='auto', cmap='viridis')  # or 'hot', 'coolwarm', etc.
+plt.imshow(centers, aspect='auto', cmap='plasma')  # or 'hot', 'coolwarm', etc.
 plt.colorbar(label='Feature value')
-plt.xlabel('Feature Number Index')
-plt.ylabel('Class')
-plt.title('Cluster Centers (10x8)')
-plt.xticks(np.arange(8))
-plt.yticks(np.arange(10))
+plt.xlabel('Feature Number Index',fontsize=20)
+plt.ylabel('Class',fontsize=20)
+plt.title('Clustering Feature Centers (10x8)',fontsize=24)
+plt.xticks(np.arange(8),fontsize=18)
+plt.yticks(np.arange(10),fontsize=18)
 plt.show()
 #--------------------------------------------------------------
+"""
+
 #%% 모델학습
 train, validataion, test = DataDivide(mats,8,0,2)
 
@@ -350,13 +352,12 @@ hidden_layer_node = 60
 hln=hidden_layer_node
 batch_size = 64# 2^n
 epoch = 1000
-learning_rate = 0.005
+learning_rate = 0.007
 # ---------------------------------
 w_his, v_his, mse_his, acc_his=Two_Layer_NN(train_x, train_y, hln, learning_rate ,batch_size, epoch, init_start,init_space) # Neural network
 #----------------------------------------------------------------
-#%% 모델 검증
-test_x = test[:,:train.shape[1]-1]
-test_y = test[:,train.shape[1]-1]
+test_x = test[:,:test.shape[1]-1]
+test_y = test[:,test.shape[1]-1]
 
 last_w = w_his[-1, :,:]
 last_v = v_his[-1, :,:]
@@ -399,3 +400,18 @@ fcolumns[0,0] = "\\"
 conf_mat=np.concatenate((headers,conf_mat),axis=0)
 conf_mat=np.concatenate((fcolumns,conf_mat),axis=1)
 #----------------------------------------------------------------
+
+
+
+
+import pandas as pd
+
+save_path = "C:\\Users\\user\\Downloads\\myewight\\w_hidden.csv"
+pd.DataFrame(last_v).to_csv(save_path, index=False, header=False)
+    
+save_path = "C:\\Users\\user\\Downloads\\myewight\\w_output.csv"
+pd.DataFrame(last_w).to_csv(save_path, index=False, header=False)
+
+save_path = "C:\\Users\\user\\Downloads\\myewight\\conf_mat.csv"
+pd.DataFrame(conf_mat).to_csv(save_path, index=False, header=False)
+
