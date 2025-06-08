@@ -303,7 +303,7 @@ def DataDivide(data, train, validation, test):
 directory = "C:\\Users\\USER\\Downloads\\train"
 x,y=select_features(directory)
 mats = np.column_stack([x,y])
-"""
+
 #%%--------------데이터 mats를 클러스터링으로 분석------------------
 K = 10
 np.random.seed(77) # lucky 77
@@ -337,7 +337,7 @@ plt.xticks(np.arange(8),fontsize=18)
 plt.yticks(np.arange(10),fontsize=18)
 plt.show()
 #--------------------------------------------------------------
-"""
+
 
 #%% 모델학습
 train, validataion, test = DataDivide(mats,8,0,2)
