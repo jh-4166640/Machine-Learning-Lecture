@@ -63,33 +63,22 @@ def OneHotEncoding(y):
 
     return new_y
 
-def ForwardPropagation(cx, bch, layer_size,param_mat):
-    """
-    parameters
-    * cx : input data
-    * bch : batch size
-    * w : weights output layer between Hidden layer
-    * v : weights input layer between Hidden layer
-    
-    return
-    * outp_o : y hat result
-    * hidn_1_o : sigmoid passed on hidden layer
-    """
-    # hidn_1_i : first hidden layer input (before activation function)
-    hidn_1_i = v@cx # L by batch
-    # hidn_1_o : first hidden layer output (after activation function)
-    hidn_1_o = Sigmoid(hidn_1_i)
-    bias_batch = np.ones((1,bch)) # bias 추가용
-    hidn_1_o = np.concatenate((hidn_1_o, bias_batch), axis=0) # L+1 by batch
-    
-    # outp_i : output layer input (before activation function)
-    outp_i = w@hidn_1_o # Q by batch
-    # outp_o : output layer output (after activation function)
-    outp_o = Sigmoid(outp_i) # Q by batch
-    return outp_o, hidn_1_o   
+def ActivationFunc(z):
+    #sigmoid
+    p = 1 / (1+np.exp(-z))
+    return p
+def DifferentialByActiveFunc(arg):
+    #sigmoid
+    return arg * (1-arg)
 
+def LossDifferentialFunc(y_hat,y_real):
+    #MSE
+    return 2 * (y_hat-y_real)
 
-
+def BiasAdd(data, bch):
+    bias = np.ones((1, bch))
+    newData = np.concatenate((data, bias), axis=0)
+    return newData
 
 
 """
@@ -141,7 +130,7 @@ one_hot_y = OneHotEncoding(output_mat)
 
 init_interval = 10
 init_start    = -5
-batch = 16
+batch = 64
 epoch = 10
 alpha = 0.06
 
@@ -167,10 +156,12 @@ hdn_node.append(output_class)
 
 MAX_NODE_SIZE = max(hdn_node)+1
 
+
 param_mat=np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
 param_his=np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
 loss_his =np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
 acc_his  =np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
+var_mat  =np.zeros((layer_size,MAX_NODE_SIZE-1, batch))
 #layer_num = 0
 
 # --- Initialize Parameters --- 
@@ -198,8 +189,37 @@ for epc in range(0,epoch):
         cur_y = y_shf[:,start_idx : end_idx] # 1 by batch
         batchs = end_idx - start_idx
         start_idx = end_idx
-        outp_o, hidn_1_o=ForwardPropagation(cur_x, batchs, w, v)
-        w_n, v_n = BackPropagation(cur_x, w, hidn_1_o, outp_o, cur_y)
+        
+        
+        forward_layer= 0
+        # --- Forward Propagation ---
+        cx = cur_x # input_node+1 by batch size
+        for frd_lyr in range(0,layer_size,1):
+            param = param_mat[frd_lyr,0:hdn_node[frd_lyr+1],0:hdn_node[frd_lyr]+1]
+            alp = param@cx
+            after_activeFn = ActivationFunc(alp)
+            var_mat[frd_lyr,0:after_activeFn.shape[0],0:batch]=after_activeFn
+            if frd_lyr == layer_size-1:
+                y_hat=after_activeFn
+            else:
+                after_activeFn = BiasAdd(after_activeFn, batchs)
+                cx = after_activeFn
+        # ---------------------------
+        
+        # --- Back Propagation ---
+        legacy = LossDifferentialFunc(y_hat, cur_y)
+        #bck_lyr = 3
+        for bck_lyr in range(layer_size, 0,-1):
+            legacy = DifferentialByActiveFunc(y_hat) * legacy
+            param_old = param_mat[bck_lyr-1, 0:hdn_node[bck_lyr],0:hdn_node[bck_lyr-1]+1]
+            var = var_mat[bck_lyr-1,0:after_activeFn.shape[0],0:batch]
+            param_mat[bck_lyr-1, 0:hdn_node[bck_lyr],0:hdn_node[bck_lyr-1]+1] = legacy * var
+        # ------------------------
+            
+        
+        
+        #outp_o, hidn_1_o=ForwardPropagation(cur_x, batchs, w, v)
+        #w_n, v_n = BackPropagation(cur_x, w, hidn_1_o, outp_o, cur_y)
         
 
 
