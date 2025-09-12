@@ -63,10 +63,12 @@ def OneHotEncoding(y):
 
     return new_y
 
+
 def ActivationFunc(z):
     #sigmoid
     p = 1 / (1+np.exp(-z))
     return p
+
 def DifferentialByActiveFunc(arg):
     #sigmoid
     return arg * (1-arg)
@@ -128,11 +130,11 @@ x = input_mat.T
 one_hot_y = OneHotEncoding(output_mat)
 ### -------------------------------------------------------------------------------------------------------
 
-init_interval = 10
-init_start    = -5
+init_interval = 2
+init_start    = -1
 batch = 64
-epoch = 10
-alpha = 0.06
+epoch = 1000
+alpha = 0.005
 
 step_max = round(N/batch)
 cnts = batch*step_max
@@ -143,8 +145,8 @@ if cnts < N:
         step_max = step_max + 2
 
 input_size = np.shape(input_mat)[1]-1
-layer_size = 4
-hdn_node = [2,2,2]
+hdn_node = [10,10,10,10]
+layer_size = len(hdn_node) + 1
 output_class = len(np.unique(output_mat))
 
 
@@ -158,10 +160,10 @@ MAX_NODE_SIZE = max(hdn_node)+1
 
 
 param_mat=np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
-param_his=np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
-loss_his =np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
-acc_his  =np.zeros((layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
-var_mat  =np.zeros((layer_size,MAX_NODE_SIZE-1, batch))
+param_his=np.zeros((epoch, layer_size,MAX_NODE_SIZE,MAX_NODE_SIZE))
+loss_his =np.zeros(epoch)
+acc_his  =np.zeros(epoch)
+var_mat  =np.zeros((layer_size-1,MAX_NODE_SIZE, batch))
 #layer_num = 0
 
 # --- Initialize Parameters --- 
@@ -189,38 +191,90 @@ for epc in range(0,epoch):
         cur_y = y_shf[:,start_idx : end_idx] # 1 by batch
         batchs = end_idx - start_idx
         start_idx = end_idx
-        
-        
-        forward_layer= 0
+            
         # --- Forward Propagation ---
         cx = cur_x # input_node+1 by batch size
         for frd_lyr in range(0,layer_size,1):
             param = param_mat[frd_lyr,0:hdn_node[frd_lyr+1],0:hdn_node[frd_lyr]+1]
             alp = param@cx
             after_activeFn = ActivationFunc(alp)
-            var_mat[frd_lyr,0:after_activeFn.shape[0],0:batch]=after_activeFn
             if frd_lyr == layer_size-1:
                 y_hat=after_activeFn
             else:
                 after_activeFn = BiasAdd(after_activeFn, batchs)
+                var_mat[frd_lyr,0:after_activeFn.shape[0],0:batchs]=after_activeFn
                 cx = after_activeFn
         # ---------------------------
         
         # --- Back Propagation ---
         legacy = LossDifferentialFunc(y_hat, cur_y)
-        #bck_lyr = 3
+        legacy = DifferentialByActiveFunc(y_hat) * legacy
         for bck_lyr in range(layer_size, 0,-1):
-            legacy = DifferentialByActiveFunc(y_hat) * legacy
             param_old = param_mat[bck_lyr-1, 0:hdn_node[bck_lyr],0:hdn_node[bck_lyr-1]+1]
-            var = var_mat[bck_lyr-1,0:after_activeFn.shape[0],0:batch]
-            param_mat[bck_lyr-1, 0:hdn_node[bck_lyr],0:hdn_node[bck_lyr-1]+1] = legacy * var
+            var = var_mat[bck_lyr-2,0:hdn_node[bck_lyr-1]+1,0:batchs] # L+1 by batch
+            param_mat[bck_lyr-1, 0:hdn_node[bck_lyr],0:hdn_node[bck_lyr-1]+1] -= alpha*(legacy @ var.T)
+            param_old = param_old[:,:-1]
+            legacy = param_old.T @ legacy
+            legacy = DifferentialByActiveFunc(var[:-1,:]) * legacy
+            #param_old 6by3 var 3by64 legacy 6 by 64
         # ------------------------
             
+        #1 step uptate 완료 된거임
         
-        
-        #outp_o, hidn_1_o=ForwardPropagation(cur_x, batchs, w, v)
-        #w_n, v_n = BackPropagation(cur_x, w, hidn_1_o, outp_o, cur_y)
-        
+    # 1 epoch 완료
+    #MSE 계산하기
+    mse_cx = input_mat.T
+    mse_y_real = one_hot_y.T
+    
+    for mse_fr in range(0,layer_size,1):
+        mse_param = param_mat[mse_fr,0:hdn_node[mse_fr+1],0:hdn_node[mse_fr]+1]
+        alp = mse_param@mse_cx
+        mse_after_activeFn = ActivationFunc(alp)
+        if mse_fr == layer_size-1:
+            mse_y_hat=mse_after_activeFn
+        else:
+            mse_after_activeFn = BiasAdd(mse_after_activeFn, mse_cx.shape[1])
+            mse_cx = mse_after_activeFn
+    mse = np.mean((mse_y_real - mse_y_hat)**2)
+    one_hot_y_hat = np.zeros_like(mse_y_hat.T)
+    max_idx = np.argmax(mse_y_hat.T,axis=1)
+    one_hot_y_hat[np.arange(mse_y_hat.shape[1]), max_idx] = 1
+
+    compare_max = np.all(one_hot_y == one_hot_y_hat, axis=1)
+    acc = (np.sum(compare_max == True) / one_hot_y.shape[0]) * 100
+    loss_his[epc] = mse
+    acc_his[epc] = acc
+    
+    param_his[epc,:,:,:] = param_mat[:,:,:]
+    
+    
+plt.figure(figsize=(12,6))
+plot_x = np.arange(0,epoch,1)
+plt.plot(plot_x,acc_his,label="accuracy")
+plt.grid(True)
+plt.rc('font',size=18)
+plt.legend(fontsize=16)
+plt.title("Accuracy graphs according to epoch\n"
+          +"batch size="+str(batch)+", learning rate="+str(alpha),fontsize=20)
+plt.xlabel('epoch',fontsize=18)
+plt.ylabel('accuracy[%]',fontsize=18)
+xtick = np.arange(0,epoch+1,epoch/10)
+plt.xticks(xtick, fontsize=18)
+plt.yticks(fontsize=18)
+plt.show()
 
 
-
+plt.figure(figsize=(12,6))
+plot_x = np.arange(0,epoch,1)
+plt.plot(plot_x,loss_his,label="loss")
+plt.grid(True)
+plt.rc('font',size=18)
+plt.legend(fontsize=16)
+plt.title("Loss graphs according to epoch\n"
+          +"batch size="+str(batch)+", learning rate="+str(alpha),fontsize=20)
+plt.xlabel('epoch',fontsize=18)
+plt.ylabel('accuracy[%]',fontsize=18)
+xtick = np.arange(0,epoch+1,epoch/10)
+plt.xticks(xtick, fontsize=18)
+plt.yticks(fontsize=18)
+plt.show()
