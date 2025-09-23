@@ -94,7 +94,7 @@ class DeepNeuralNetwork():
             p = exp_z / np.sum(exp_z, axis=0, keepdims=True) 
         elif cmd == 'ReLU': 
             p = np.where(z > 0, z, 0) 
-        elif cmd == 'leackyReLU': 
+        elif cmd == 'leakyReLU': 
             p = np.where(z > 0, z, z*var) 
         return p
 
@@ -103,7 +103,7 @@ class DeepNeuralNetwork():
             res = DiffSigmoid(arg)
         elif self.activation == 'ReLU':
             res = DiffReLU(arg)
-        elif self.activation == 'leackyReLU':
+        elif self.activation == 'leakyReLU':
             res = DiffLeakyReLU(arg,var)
         else :
             print("not selected activation function")
@@ -312,7 +312,7 @@ epoch = 2000
 alpha = 0.000005
 hdn_node = [32,32,32,32]
 
-act = 'leackyReLU'
+act = 'leakyReLU'
 outact = 'softmax'
 
 myNN = DeepNeuralNetwork(file_path, hdn_node, epoch=epoch,batch=batch,alpha=alpha
